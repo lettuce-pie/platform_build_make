@@ -1231,11 +1231,18 @@ class PasswdGen(BaseGenerator):
             help='An android_filesystem_config.h file'
             'to parse AIDs and OEM Ranges from')
 
+        opt_group.add_argument(
+            '--required-prefix',
+            required=False,
+            help='A prefix that the names are required to contain.')
+
     def __call__(self, args):
 
         hdr_parser = AIDHeaderParser(args['aid_header'])
 
         parser = FSConfigFileParser(args['fsconfig'], hdr_parser.oem_ranges)
+
+        required_prefix = args['required_prefix']
 
         aids = parser.aids
 
@@ -1244,7 +1251,11 @@ class PasswdGen(BaseGenerator):
             return
 
         for aid in aids:
-            self._print_formatted_line(aid)
+            if required_prefix is None or aid.friendly.startswith(required_prefix):
+                self._print_formatted_line(aid)
+            else:
+                sys.exit("%s: AID '%s' must start with '%s'" %
+                         (args['fsconfig'], aid.friendly, required_prefix))
 
     def _print_formatted_line(self, aid):
         """Prints the aid to stdout in the passwd format. Internal use only.
